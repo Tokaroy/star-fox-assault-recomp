@@ -32,15 +32,34 @@ function Read-NativeBuildRecord([string]$ProjectDir) {
 }
 
 function Test-NativeImageMatchesRecord($Record, [string]$ImagePath) {
-  # Path, size and modification time must match what the build recorded; matching them avoids
-  # re-hashing a multi-gigabyte image on every launch.
+  # Matching path, size and modification time avoids re-hashing a multi-gigabyte image on
+  # ordinary launches. After a portable folder move, verify the recorded content hash once.
   $image = Get-Item -LiteralPath $ImagePath -ErrorAction Stop
   $fullImagePath = [IO.Path]::GetFullPath($ImagePath)
   $builtImagePath = [IO.Path]::GetFullPath([string]$Record.image)
-  return [string]::Equals($fullImagePath,$builtImagePath,[StringComparison]::OrdinalIgnoreCase) -and
-    [long]$image.Length -eq [long]$Record.image_size -and
-    [long]$image.LastWriteTimeUtc.Ticks -eq [long]$Record.image_modified_utc_ticks -and
-    [string]$Record.game_id -ceq $script:NativeGameId
+  if ([string]$Record.game_id -cne $script:NativeGameId -or [long]$image.Length -ne [long]$Record.image_size) { return $false }
+  $samePath = [string]::Equals($fullImagePath,$builtImagePath,[StringComparison]::OrdinalIgnoreCase)
+  if ($samePath -and [long]$image.LastWriteTimeUtc.Ticks -eq [long]$Record.image_modified_utc_ticks) { return $true }
+  $expectedHash = [string]$Record.image_sha256
+  if ($expectedHash -notmatch '^[A-Fa-f0-9]{64}$') { return $false }
+  $actualHash = (Get-FileHash -LiteralPath $ImagePath -Algorithm SHA256 -ErrorAction Stop).Hash
+  return [string]::Equals($actualHash,$expectedHash,[StringComparison]::OrdinalIgnoreCase)
+}
+
+function Update-NativeImageBinding([string]$NativePath, $Record, [string]$ImagePath) {
+  # Once a moved or touched-but-identical disc has passed its SHA-256 check, remember the new
+  # path and timestamp so future launches return to the fast metadata-only check.
+  try {
+    $target = Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $NativePath))) 'user-data\native-build-info.json'
+    if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { return }
+    $image = Get-Item -LiteralPath $ImagePath -ErrorAction Stop
+    $Record.image = [IO.Path]::GetFullPath($ImagePath)
+    $Record.image_size = [long]$image.Length
+    $Record.image_modified_utc_ticks = [long]$image.LastWriteTimeUtc.Ticks
+    $temp = $target + '.tmp'
+    [IO.File]::WriteAllText($temp,($Record | ConvertTo-Json -Depth 10),(New-Object System.Text.UTF8Encoding($false)))
+    [IO.File]::Replace($temp,$target,[NullString]::Value)
+  } catch { try { Remove-Item -LiteralPath ($target + '.tmp') -Force -ErrorAction SilentlyContinue } catch {} }
 }
 
 # Status is 'NOT BUILT', 'REBUILD REQUIRED' (with a Reason) or $script:NativeReadyStatus.
@@ -57,6 +76,7 @@ function Get-NativeBuildStatus([string]$NativePath, $Record, [string]$ImagePath,
   }
   try {
     if (-not (Test-NativeImageMatchesRecord $Record $ImagePath)) { return (Result 'REBUILD REQUIRED' 'selected game image differs from the one built') }
+    Update-NativeImageBinding $NativePath $Record $ImagePath
   } catch { return (Result 'REBUILD REQUIRED' 'selected game image could not be checked') }
   $exeTime = (Get-Item -LiteralPath $NativePath).LastWriteTimeUtc
   if ($SourceWriteUtc -and ((& $SourceWriteUtc) -gt $exeTime)) { return (Result 'REBUILD REQUIRED' 'project source changed since the last build') }
@@ -72,6 +92,7 @@ function Test-NativeBuildForImage([string]$NativePath, $Record, [string]$ImagePa
         [string]::IsNullOrWhiteSpace([string]$Record.image_sha256) -or
         [string]::IsNullOrWhiteSpace([string]$Record.executable_sha256)) { return $false }
     if (-not (Test-NativeImageMatchesRecord $Record $ImagePath)) { return $false }
+    Update-NativeImageBinding $NativePath $Record $ImagePath
     # The build hash stays part of the record; the build pipeline verifies it when the image
     # is read.
     $exeHash = (Get-FileHash -LiteralPath $NativePath -Algorithm SHA256).Hash

@@ -42,6 +42,7 @@ $hostBuild=(Join-Path $project 'user-data/verification/release-host-tool').Repla
 Invoke-Checked $paths.cmake @('-S',"$project/runtime/tools/native",'-B',$hostBuild,'-G','Ninja','-DCMAKE_BUILD_TYPE=Release',"-DCMAKE_MAKE_PROGRAM=$($paths.ninja)","-DCMAKE_CXX_COMPILER=$bin/x86_64-w64-mingw32-clang++.exe")
 Invoke-Checked $paths.cmake @('--build',$hostBuild,'--parallel','4')
 Invoke-Checked $shell @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'Build-Launcher.ps1'))
+Invoke-Checked $shell @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'Test-LauncherBootstrap.ps1'))
 Invoke-Checked $shell @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'Package-Prototype.ps1'),'-HostToolPath',"$hostBuild/assault-image-tool.exe",'-ReleaseVersion','0.2.0-host-check')
 Invoke-Checked $shell @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'Test-PrototypeUpdate.ps1'))
 Write-Host 'PASS: host checks and Windows builds. Gameplay and release approval remain separate gates.'

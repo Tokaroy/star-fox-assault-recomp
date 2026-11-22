@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
 internal static class LauncherBootstrap
@@ -349,25 +350,58 @@ internal static class RecompLauncherMode
     {
         try
         {
-            string json = File.ReadAllText(Path.Combine(project, "user-data\\native-build-info.json"));
+            string recordPath = Path.Combine(project, "user-data\\native-build-info.json");
+            string json = File.ReadAllText(recordPath);
             FileInfo info = new FileInfo(image);
             string recordedImage = JsonString(json, "image");
             string recordedHash = JsonString(json, "executable_sha256");
             if (JsonNumber(json, "schema_version", 0) < 2 || recordedImage == null || recordedHash == null) { return false; }
-            if (!string.Equals(Path.GetFullPath(recordedImage), info.FullName, StringComparison.OrdinalIgnoreCase)) { return false; }
+            bool samePath = string.Equals(Path.GetFullPath(recordedImage), info.FullName, StringComparison.OrdinalIgnoreCase);
             // Read as exact 64-bit integers: file times in ticks need 60 bits, more than a
             // double holds, so a double compare almost never matched.
             if (JsonLong(json, "image_size", -1) != info.Length) { return false; }
-            if (JsonLong(json, "image_modified_utc_ticks", -1) != info.LastWriteTimeUtc.Ticks) { return false; }
+            bool sameStamp = JsonLong(json, "image_modified_utc_ticks", -1) == info.LastWriteTimeUtc.Ticks;
             if (JsonString(json, "game_id") != GameId) { return false; }
+            if (!samePath || !sameStamp)
+            {
+                string expectedImageHash = JsonString(json, "image_sha256");
+                if (expectedImageHash == null || expectedImageHash.Length != 64) { return false; }
+                using (FileStream imageStream = File.OpenRead(image))
+                using (SHA256 sha = SHA256.Create())
+                {
+                    string imageHash = BitConverter.ToString(sha.ComputeHash(imageStream)).Replace("-", "");
+                    if (!string.Equals(imageHash, expectedImageHash, StringComparison.OrdinalIgnoreCase)) { return false; }
+                }
+            }
             using (FileStream stream = File.OpenRead(exe))
             using (SHA256 sha = SHA256.Create())
             {
                 string hash = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "");
-                return string.Equals(hash, recordedHash, StringComparison.OrdinalIgnoreCase);
+                if (!string.Equals(hash, recordedHash, StringComparison.OrdinalIgnoreCase)) { return false; }
             }
+            if (!samePath || !sameStamp) { UpdatePortableImageBinding(recordPath, json, info); }
+            return true;
         }
         catch (Exception) { return false; }
+    }
+
+    private static void UpdatePortableImageBinding(string recordPath, string json, FileInfo image)
+    {
+        // Hash verification above proved that this is the same game image. Save its new
+        // location and timestamp atomically so future moves do not re-hash a multi-gigabyte ISO.
+        try
+        {
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            Dictionary<string, object> record = serializer.Deserialize<Dictionary<string, object>>(json);
+            if (record == null) { return; }
+            record["image"] = image.FullName;
+            record["image_size"] = image.Length;
+            record["image_modified_utc_ticks"] = image.LastWriteTimeUtc.Ticks;
+            string tempPath = recordPath + ".tmp";
+            File.WriteAllText(tempPath, serializer.Serialize(record), new UTF8Encoding(false));
+            File.Replace(tempPath, recordPath, null);
+        }
+        catch (Exception) { /* A failed metadata refresh does not invalidate the verified build. */ }
     }
 
     // The same rule as Remove-OldSessionLogs in Launch-StarFoxAssault.ps1, so playing only from

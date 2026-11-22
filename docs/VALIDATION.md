@@ -694,7 +694,30 @@ CTest checks passed.
 The native game executable was rebuilt from a new offline build directory using the user's
 existing USA GF7E01 CISO, which was only read. It survived a bounded 128-second normal-speed
 run with scripted controller inputs and no crash. That run produced no frame captures at the
-requested interval, so it does not confirm the title/menu transition. The earlier retained
-frame at guest render frame 5,000 shows the `SELECT GAME` screen, but it came from a previous
-build. The current main-menu report and the first-boss disappearance remain open; no gameplay
-fix is claimed here.
+requested interval, so it did not confirm the title/menu transition. The 2026-11-22 run below
+later confirmed the main menu on a clean build; first-boss visibility and full mission
+completion remain unverified.
+
+### 2026-11-22 — clean checkout, portable move and title-menu smoke
+
+- Cloned the current `main` branch into a clean D: checkout and ran
+  `tools/Test-ReleaseHost.ps1 -Offline`: launcher core 257/257, launcher path audit 130/130,
+  runtime CTest 15/15, package extraction/hash/content checks and updater rollback tests all
+  passed. The launcher bootstrap's moved-image checks also passed. The source-only package
+  contained 289 payload files.
+- The offline image build stopped as expected because a fresh checkout had no SDL source
+  cache. The first online build then fetched/verified pinned tools, built SDL, recompiled the
+  user-supplied USA GF7E01 CISO and completed all 104 native build steps. The image stayed
+  read-only; a bounded run used an isolated temporary memory card.
+- A 90-second normal-speed hidden run survived to its limit without a crash. Captures show the
+  title menu at presented frame 2,500, player selection at 3,500 and the new-user name-entry
+  screen at 4,500. Session logs reported about 60 FPS after startup. This establishes boot and
+  menu progress on this PC, not mission completion, boss visibility, audio quality or a clean
+  exit; the test stopped at its time limit.
+- Portable relocation handling now resolves a selected ISO stored inside the project folder
+  by relative path. If the folder moves, the existing image hash is checked before the native
+  build is reused, and its location is rebound atomically for later quick checks. The tests
+  simulate the moved image, changed content, relative-path traversal and saved metadata in
+  both the PowerShell launcher and the RecompLauncher bootstrap.
+  RecompLauncher and launcher source compile with the added logic. This source change is not
+  present in the published rc.6 archive.

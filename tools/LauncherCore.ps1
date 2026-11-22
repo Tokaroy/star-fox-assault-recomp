@@ -7,6 +7,7 @@
 # the Settings page and the native argument builder all read from here.
 $script:LauncherSettingSchema = [ordered]@{
   disc       = @{ Type = 'string'; Default = '' }
+  discRelative = @{ Type = 'string'; Default = '' }
   dolphin    = @{ Type = 'string'; Default = '' }
   scale      = @{ Type = 'double'; Default = 2.0; Allowed = @(0.0,1.0,1.5,2.0,3.0,4.0,6.0) }
   muteMusic  = @{ Type = 'bool';   Default = $false }
@@ -136,6 +137,30 @@ function Read-LauncherSettings($saved) {
     if ($property) { $settings[$key] = ConvertTo-LauncherSettingValue $key $property.Value }
   }
   return $settings
+}
+
+# Store an image path relative to the portable project when it is inside the folder. This lets
+# a copied package find its own ISO after the entire folder is renamed or moved to another drive.
+function Get-ProjectRelativePath([string]$ProjectDir, [string]$Path) {
+  if ([string]::IsNullOrWhiteSpace($ProjectDir) -or [string]::IsNullOrWhiteSpace($Path)) { return '' }
+  try {
+    $root = [IO.Path]::GetFullPath($ProjectDir).TrimEnd([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+    $full = [IO.Path]::GetFullPath($Path)
+    if (-not $full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) { return '' }
+    return $full.Substring($root.Length)
+  } catch { return '' }
+}
+
+function Resolve-ProjectRelativePath([string]$ProjectDir, [string]$RelativePath) {
+  if ([string]::IsNullOrWhiteSpace($ProjectDir) -or [string]::IsNullOrWhiteSpace($RelativePath)) { return '' }
+  try {
+    if ([IO.Path]::IsPathRooted($RelativePath)) { return '' }
+    $root = [IO.Path]::GetFullPath($ProjectDir).TrimEnd([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+    $full = [IO.Path]::GetFullPath((Join-Path $root $RelativePath))
+    if (-not $full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) { return '' }
+    if (Test-Path -LiteralPath $full -PathType Leaf) { return $full }
+  } catch {}
+  return ''
 }
 
 function Get-NativeGraphicsArgumentList($scale, $aspect, $aa, $filter) {

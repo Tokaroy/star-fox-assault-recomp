@@ -84,6 +84,8 @@ if (Test-Path -LiteralPath $script:settingsPath) {
 }
 # Read-LauncherSettings has already replaced every missing or invalid value with its default.
 $script:discValue = [string]$script:settings.disc
+$portableDisc = Resolve-ProjectRelativePath $script:projectDir ([string]$script:settings.discRelative)
+if ($portableDisc) { $script:discValue = $portableDisc; $script:settings.disc = $portableDisc }
 $script:dolphinValue = [string]$script:settings.dolphin
 $script:controlsValue = [string]$script:settings.controls
 $script:scaleValue = [double]$script:settings.scale
@@ -143,6 +145,7 @@ if (Test-Path -LiteralPath $script:flightDisplayFontPath -PathType Leaf) {
 
 function Save-Settings {
   $script:settings.disc = $script:discValue
+  $script:settings.discRelative = Get-ProjectRelativePath $script:projectDir ([string]$script:discValue)
   $script:settings.dolphin = $script:dolphinValue
   $script:settings.scale = [double]$script:scaleValue
   $script:settings.aspect = [string]$script:aspectValue

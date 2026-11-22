@@ -35,6 +35,7 @@ Main weak spots: every control is placed with absolute coordinates (now in 96-DP
 - [x] Keep the newest 20 session logs plus up to 20 older sessions flagged with `[guard]`, `[vertcheck]`, `[thread-watch]` or `fatal`.
 - [x] Report `REBUILD REQUIRED` with a reason instead of `UPDATE AVAILABLE`.
 - [x] Cache the recursive source-freshness scan per session; reset after a build or package install.
+- [x] Keep a native build usable after the portable folder moves: resolve an in-folder ISO by relative path and verify a moved/re-timestamped image by SHA-256 before reusing the build (issue #6). Rebinding the verified image path keeps later launches fast.
 
 ## Tier 2 — UX and first run
 

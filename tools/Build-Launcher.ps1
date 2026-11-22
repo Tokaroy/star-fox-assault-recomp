@@ -19,6 +19,7 @@ $arguments = @(
   "/out:$outputPath",
   "/win32icon:$iconPath",
   '/reference:System.dll',
+  '/reference:System.Web.Extensions.dll',
   '/reference:System.Windows.Forms.dll',
   $sourcePath
 )

@@ -13,7 +13,8 @@ function Assert-True([bool]$condition, [string]$name) { Assert-Equal $true $cond
 
 # --- Settings defaults and normalisation ---
 $defaults = Get-LauncherSettingDefaults
-Assert-Equal 19 $defaults.Count 'schema covers every profile key'
+Assert-Equal 20 $defaults.Count 'schema covers every profile key'
+Assert-Equal '' $defaults.discRelative 'portable disc path defaults empty'
 Assert-Equal '0' $defaults.anisotropy 'HD enhancements default off'
 Assert-Equal $false $defaults.softParticles 'soft particles default off'
 Assert-Equal 2.0 $defaults.scale 'default scale'
@@ -271,7 +272,7 @@ try {
   $exeHash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
   function New-Record([hashtable]$change = @{}) {
     $record = [ordered]@{ schema_version = 2; game_id = 'GF7E01'; image = $image; image_size = $imageItem.Length
-      image_modified_utc_ticks = $imageItem.LastWriteTimeUtc.Ticks; image_sha256 = 'abc'; executable_sha256 = $exeHash }
+      image_modified_utc_ticks = $imageItem.LastWriteTimeUtc.Ticks; image_sha256 = (Get-FileHash -LiteralPath $image -Algorithm SHA256).Hash; executable_sha256 = $exeHash }
     foreach ($key in $change.Keys) { $record[$key] = $change[$key] }
     return [pscustomobject]$record
   }
@@ -284,8 +285,13 @@ try {
   Assert-Equal 'selected game image was not found' (Status (New-Record) (Join-Path $scratch 'missing.iso')).Reason 'missing image: rebuild'
   Assert-Equal 'selected game image was not found' (Status (New-Record) '').Reason 'no image selected: rebuild'
   Assert-Equal 'selected game image differs from the one built' (Status (New-Record @{ image_size = 1 })).Reason 'size differs: rebuild'
-  Assert-Equal 'selected game image differs from the one built' (Status (New-Record @{ image_modified_utc_ticks = 5 })).Reason 'time differs: rebuild'
-  Assert-Equal 'selected game image differs from the one built' (Status (New-Record @{ image = (Join-Path $scratch 'other.iso') })).Reason 'path differs: rebuild'
+  Assert-Equal $readyText (Status (New-Record @{ image_modified_utc_ticks = 5 })).Status 'image with changed timestamp and matching hash reuses build'
+  $movedImage = Join-Path $scratch 'moved.iso'
+  [IO.File]::WriteAllBytes($movedImage,[byte[]](0..63))
+  (Get-Item -LiteralPath $movedImage).LastWriteTimeUtc = [DateTime]::UtcNow.AddDays(-2)
+  Assert-Equal $readyText (Status (New-Record) $movedImage).Status 'moved image with matching hash reuses build'
+  [IO.File]::WriteAllBytes($movedImage,[byte[]](1..64))
+  Assert-Equal 'selected game image differs from the one built' (Status (New-Record) $movedImage).Reason 'moved image with different contents rebuilds'
   Assert-Equal 'selected game image differs from the one built' (Status (New-Record @{ game_id = 'GF7P01' })).Reason 'other region: rebuild'
   Assert-Equal 'selected game image could not be checked' (Status (New-Record @{ image = "bad`0path" })).Reason 'unreadable record path: rebuild'
   Assert-Equal 'project source changed since the last build' (Status (New-Record) $image { [DateTime]::MaxValue }).Reason 'newer source: rebuild'
@@ -297,6 +303,31 @@ try {
   Assert-Equal $false $scanned 'source scan skipped when a cheaper check fails'
   $upper = Join-Path $scratch 'GAME.ISO'
   Assert-Equal $readyText (Status (New-Record @{ image = $upper })).Status 'image path compared without case'
+
+  $portableRoot = Join-Path $scratch 'portable'
+  [IO.Directory]::CreateDirectory((Join-Path $portableRoot 'images')) | Out-Null
+  $portableIso = Join-Path $portableRoot 'images\game.iso'
+  [IO.File]::WriteAllBytes($portableIso,[byte[]](1,2,3))
+  Assert-Equal 'images\game.iso' (Get-ProjectRelativePath $portableRoot $portableIso) 'image under project stored as relative path'
+  Assert-Equal '' (Get-ProjectRelativePath $portableRoot $image) 'image outside project has no relative path'
+  Assert-Equal ([IO.Path]::GetFullPath($portableIso)) (Resolve-ProjectRelativePath $portableRoot 'images\game.iso') 'relative image resolves under project'
+  Assert-Equal '' (Resolve-ProjectRelativePath $portableRoot '..\outside.iso') 'relative image cannot escape project'
+
+  $portableBuildRoot = Join-Path $portableRoot 'build-desktop\Release'
+  $portableData = Join-Path $portableRoot 'user-data'
+  [IO.Directory]::CreateDirectory($portableBuildRoot) | Out-Null
+  [IO.Directory]::CreateDirectory($portableData) | Out-Null
+  $portableExe = Join-Path $portableBuildRoot 'assault.exe'
+  [IO.File]::Copy($exe,$portableExe,$true)
+  $portableRecord = New-Record
+  [IO.File]::WriteAllText((Join-Path $portableData 'native-build-info.json'),($portableRecord | ConvertTo-Json -Depth 10),(New-Object System.Text.UTF8Encoding($false)))
+  [IO.File]::WriteAllBytes($portableIso,[byte[]](0..63))
+  (Get-Item -LiteralPath $portableIso).LastWriteTimeUtc = [DateTime]::UtcNow.AddDays(-3)
+  $relocated = Get-NativeBuildStatus $portableExe $portableRecord $portableIso $old
+  Assert-Equal $readyText $relocated.Status 'moved portable project accepts matching image hash'
+  $rebound = Read-NativeBuildRecord $portableRoot
+  Assert-Equal ([IO.Path]::GetFullPath($portableIso)) $rebound.image 'verified move updates saved image path'
+  Assert-Equal (Get-Item -LiteralPath $portableIso).LastWriteTimeUtc.Ticks $rebound.image_modified_utc_ticks 'verified move updates image timestamp'
 
   Assert-Equal $true (Test-NativeBuildForImage $exe (New-Record) $image) 'launch allowed for matching build'
   Assert-Equal $false (Test-NativeBuildForImage $exe (New-Record @{ executable_sha256 = ('0' * 64) }) $image) 'launch refused for a changed executable'

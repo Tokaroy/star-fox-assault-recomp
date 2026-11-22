@@ -34,6 +34,10 @@ The rc.6 download adds one-press controller binding and counts RecompLauncher se
 
 The first build needs internet access, approximately 280 MB of portable build-tool downloads plus SDL source, and several GB of free disk space. Allow at least 3 GB free; additional space is useful for logs, backups and rebuilds. The launcher downloads pinned LLVM-MinGW, CMake, Ninja and Python releases, verifies their SHA-256 checksums, and keeps them inside `user-data/build-tools/`. It uses Windows PowerShell 5.1 and .NET Framework provided by Windows. No administrator installation, Visual Studio or Dolphin is required for the native build. Later builds reuse the local cache.
 
+To move an already-built portable folder without rebuilding, keep your ISO/CISO inside that folder before selecting it in the launcher. The launcher remembers that relative location and verifies the image hash if the folder or drive changes. If the image is stored elsewhere, select it again after moving; an identical image can reuse the native build after its hash is checked.
+
+This relocation improvement is in the current source branch; it is not included in the older rc.6 download.
+
 The distribution contains source, original launcher artwork, licensed display and replacement fonts, and a standalone image inspector. It excludes game images, extracted game executables, generated game code, precompiled game binaries, personal settings and saves. Each recipient supplies their own supported image and builds locally.
 
 ## Experimental status

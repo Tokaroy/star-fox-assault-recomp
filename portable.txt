@@ -1,1 +1,5 @@
 Portable mode: settings and generated files stay under this folder's user-data directory.
+Keep the launcher folder together when moving it. If the selected game image is inside this
+folder, its relative path is remembered and the existing native build is reused after a move.
+If the game image is stored elsewhere, select it again in the new location; matching image
+contents are verified by SHA-256 so moving the launcher does not by itself require a rebuild.
