@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -15,6 +16,7 @@ public:
     void write_serial(uint8_t* header);
 
 private:
+    bool flush_range(size_t offset, size_t length);
     std::string path_;
     uint32_t size_mbit_;
     std::vector<uint8_t> data_;

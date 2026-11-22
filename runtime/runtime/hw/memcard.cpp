@@ -2,6 +2,7 @@
 #include "../runtime.h"
 #include "../platform.h"
 #include "memcard.h"
+#include <algorithm>
 #include <cstdio>
 #include <ctime>
 
@@ -118,21 +119,55 @@ void MemCard::flush() {
     if (slash != std::string::npos) plat_make_dirs(path_.substr(0, slash));
     std::string tmp = path_ + ".tmp";
     if (FILE* f = fopen(tmp.c_str(), "wb")) {
-        fwrite(data_.data(), 1, data_.size(), f);
-        fclose(f);
+        bool ok = fwrite(data_.data(), 1, data_.size(), f) == data_.size();
+        if (fflush(f) != 0) ok = false;
+        if (fclose(f) != 0) ok = false;
         // Windows' rename() fails if the destination exists, so go through the
         // platform layer, which replaces it.
-        plat_replace_file(tmp.c_str(), path_.c_str());
-        dirty_ = false;
-    } else {
-        // This used to do nothing at all when the path was not writable, which is how an
-        // app with "/" for a working directory came up with a blank card every launch.
-        static bool warned = false;
-        if (!warned) {
-            warned = true;
-            LOG(LOG_EXI, "memcard: cannot write %s -- saves will not persist", tmp.c_str());
+        if (ok && plat_replace_file(tmp.c_str(), path_.c_str())) {
+            dirty_ = false;
+            return;
         }
+        remove(tmp.c_str());
     }
+    // Retain dirty state on any open/write/close/replace failure so a later card
+    // transaction or orderly flush retries instead of silently losing the save.
+    static bool warned = false;
+    if (!warned) {
+        warned = true;
+        LOG(LOG_EXI, "memcard: could not persist %s -- saves will retry", path_.c_str());
+    }
+}
+
+bool MemCard::flush_range(size_t offset, size_t length) {
+    if (!dirty_) return true;
+    if (offset > data_.size() || length > data_.size() - offset || length == 0) return false;
+    size_t slash = path_.find_last_of("/\\");
+    if (slash != std::string::npos) plat_make_dirs(path_.substr(0, slash));
+    FILE* f = fopen(path_.c_str(), "r+b");
+    if (!f) {
+        // A missing card file or unsupported in-place write takes the existing atomic path.
+        flush();
+        return !dirty_;
+    }
+    // A short or oversized existing image needs a full rewrite so it becomes a
+    // valid card again; an in-place range write alone would preserve its bad size.
+    if (fseek(f, 0, SEEK_END) != 0 || ftell(f) != (long)data_.size()) {
+        fclose(f);
+        flush();
+        return !dirty_;
+    }
+    bool ok = fseek(f, (long)offset, SEEK_SET) == 0;
+    if (ok) ok = fwrite(data_.data() + offset, 1, length, f) == length;
+    if (ok && fflush(f) != 0) ok = false;
+    if (fclose(f) != 0) ok = false;
+    if (ok) {
+        dirty_ = false;
+        return true;
+    }
+    // If the in-place page/sector write was partial, restore a complete image atomically.
+    flush();
+    return !dirty_;
 }
 
 void MemCard::select() {
@@ -144,12 +179,17 @@ void MemCard::select() {
 
 bool MemCard::deselect() {
     bool irq = false;
+    const bool already_dirty = dirty_;
+    size_t flush_offset = 0;
+    size_t flush_length = 0;
     if (pos_) LOG(LOG_EXI, "memcard cmd %02X bytes=%u addr=%05X", cmd_, pos_, addr_);
     switch (cmd_) {
     case CMD_SECTOR_ERASE:
         if (pos_ >= 3) {
             uint32_t a = addr_ & ~0x1FFFu & (uint32_t)(data_.size() - 1);
             memset(&data_[a], 0xFF, 0x2000);
+            flush_offset = a;
+            flush_length = 0x2000;
             dirty_ = true;
             irq = true;
         }
@@ -158,6 +198,8 @@ bool MemCard::deselect() {
         if (pos_ >= 5 && !prog_.empty()) {
             uint32_t a = addr_ & (uint32_t)(data_.size() - 1);
             for (size_t i = 0; i < prog_.size(); i++) data_[(a & ~0x7Fu) | ((a + i) & 0x7F)] = prog_[i];
+            flush_offset = a & ~0x7Fu;
+            flush_length = std::min<size_t>(0x80, data_.size() - flush_offset);
             dirty_ = true;
             irq = true;
         }
@@ -168,7 +210,10 @@ bool MemCard::deselect() {
         irq = true;
         break;
     }
-    if (dirty_) flush();
+    if (dirty_) {
+        if (!already_dirty && flush_length) flush_range(flush_offset, flush_length);
+        else flush();
+    }
     pos_ = 0;
     cmd_ = 0;
     return irq && int_enabled_;

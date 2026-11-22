@@ -721,3 +721,26 @@ completion remain unverified.
   both the PowerShell launcher and the RecompLauncher bootstrap.
   RecompLauncher and launcher source compile with the added logic. This source change is not
   present in the published rc.6 archive.
+
+### 2026-11-22 — memory-card write cost
+
+- A first-run session showed that each memory-card page program rewrote the complete 512 KiB
+  card on the guest thread. Page programs now persist only their 128-byte page and sector
+  erases only their 8 KiB range. Chip erase and recovery from an earlier failed write retain
+  the atomic full-image path. Failed writes keep the card dirty so a later transaction retries.
+- Added a runtime host test for card formatting, serial creation, page programming and page
+  wrap, sector boundaries, chip erase, and reopening the saved card. Runtime CTest now passes
+  16/16, including repair of a truncated existing card. `tools/Test-ReleaseHost.ps1 -Offline`
+  passes, including launcher checks, Windows builds, bootstrap portability checks, and
+  source-only package verification (290 files).
+- Rebuilt from the user's USA GF7E01 CISO. Its SHA-256 remained
+  `F36D82912AAA67EB726E5892E05ABC6259A9C718B34DAE123AC8F3FF5640EEB6`; the image was not
+  modified. A hidden 180-second run with an isolated card survived its time limit and reached
+  the game's controller settings after creating user data. Captures at presented frames
+  9,000 and 10,000 show the settings screen; the run logged 576 page-program commands and
+  stayed near 60 FPS after startup. The check forcibly stopped the process at its limit, so
+  this is not evidence of a clean exit or completed mission.
+- A follow-up using that saved card returned to the title and main menu. Its frame captures
+  stopped at presented frame 3,000 while memory-card reads continued, although the process
+  remained alive to the 60-second limit. Gameplay beyond the menu, the first-boss visibility
+  report, and full-mission completion remain open. The candidate remains experimental.

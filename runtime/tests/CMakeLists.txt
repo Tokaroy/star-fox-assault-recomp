@@ -62,6 +62,11 @@ add_executable(guest_stack_test guest_stack_test.cpp)
 target_compile_features(guest_stack_test PRIVATE cxx_std_20)
 add_test(NAME guest_stack_test COMMAND guest_stack_test)
 
+add_executable(memcard_test memcard_test.cpp ../runtime/hw/memcard.cpp)
+target_include_directories(memcard_test PRIVATE ../runtime)
+target_compile_features(memcard_test PRIVATE cxx_std_20)
+add_test(NAME memcard_test COMMAND memcard_test)
+
 if(WIN32)
   add_executable(utf8_path_test utf8_path_test.cpp)
   target_compile_features(utf8_path_test PRIVATE cxx_std_20)
