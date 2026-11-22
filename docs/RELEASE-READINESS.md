@@ -66,7 +66,9 @@ by this assessment.
   disc image was read-only; both runs used isolated save cards and were forcibly stopped at
   their time limits. These checks do not establish mission completion, clean exit or boss
   visibility. A later rebuild added the truncated-card repair guard; it passed the full host
-  suite, but gameplay was not repeated on that final executable hash.
+  suite. A fresh-card 180-second run on that final executable stayed alive near 60 FPS and
+  captured through frame 10,500, but scripted input returned to name entry instead of starting
+  a mission. This does not establish a completed profile or gameplay validation.
 
 `tools/Test-ReleaseHost.ps1` runs the image-free Windows checks with pinned tools.
 It stops on failed child commands and uses CTest's `--no-tests=error`. Run with

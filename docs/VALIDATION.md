@@ -744,3 +744,8 @@ completion remain unverified.
   stopped at presented frame 3,000 while memory-card reads continued, although the process
   remained alive to the 60-second limit. Gameplay beyond the menu, the first-boss visibility
   report, and full-mission completion remain open. The candidate remains experimental.
+- After adding the truncated-card size check, rebuilt the final local executable and ran a
+  second fresh-card 180-second scripted session. It captured through presented frame 10,500,
+  reached controller setup, and returned to name entry after the test inputs; the process
+  stayed alive near 60 FPS to the limit. The capture did not reach a mission or establish a
+  committed user profile, so a clean saved-profile launch and gameplay still need validation.
