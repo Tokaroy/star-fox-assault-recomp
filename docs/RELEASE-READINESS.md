@@ -9,10 +9,12 @@ checked over five and then eight mission loads in scripted runs, the second from
 empty-cache build of the rc.5 package (see `VALIDATION.md`, "rc.5 package checks"; rc.6 was
 checked the same way, "rc.6 package checks").
 
-The 2026-11-22 source branch adds portable-folder relocation support and passes the host
-checks. This is not included in the published rc.6 archive. A fresh local build now reaches
-the title menu and player setup; the boss, mission completion and late-game status still block
-a gameplay release. See the dated evidence in `VALIDATION.md`.
+The 2026-11-22 source branch adds portable-folder relocation support and reduces the time
+spent persisting memory-card writes. These changes are not included in the published rc.6
+archive. A fresh local build reaches controller setup after creating the first user save, but
+a seeded follow-up stopped capturing after the main menu. The first-boss report, mission
+completion and later-game status still block a gameplay release. See the dated evidence in
+`VALIDATION.md`.
 
 Still open, and why each needs a person or hardware rather than more scripted runs:
 
@@ -54,12 +56,17 @@ by this assessment.
   startup/rendering only, not a mission, audio quality or physical controls.
 - Native executable SHA-256 for that private run:
   `bc46071d92da11ce96685f230e02853a996a1795823c57416fc972a597f147cd`.
-- 2026-11-22 source check: launcher core 257/257, path audit 130/130, bootstrap portability
-  checks, runtime CTest 15/15, 289-file source package checks, update rollback tests, launcher
-  C# compile, and a fresh
-  native build from the user-owned GF7E01 CISO all passed. The normal-speed bounded run
-  reached the title menu and player name-entry screen; it did not enter or complete a mission.
-  The disc image was read-only and the run used an isolated save folder.
+- 2026-11-22 current source check: launcher core 257/257, path audit 130/130, bootstrap
+  portability checks, runtime CTest 16/16, offline release-host checks, update rollback tests,
+  launcher C# compile, and source-only package verification (290 files) all passed. A fresh
+  native build from the user's GF7E01 CISO passed. A bounded 180-second normal-speed run
+  created user data and reached controller setup, logging 576 page-program commands while
+  staying near 60 FPS after startup. A seeded follow-up returned to the main menu but stopped
+  producing frame captures at presented frame 3,000 while the process remained alive. The
+  disc image was read-only; both runs used isolated save cards and were forcibly stopped at
+  their time limits. These checks do not establish mission completion, clean exit or boss
+  visibility. A later rebuild added the truncated-card repair guard; it passed the full host
+  suite, but gameplay was not repeated on that final executable hash.
 
 `tools/Test-ReleaseHost.ps1` runs the image-free Windows checks with pinned tools.
 It stops on failed child commands and uses CTest's `--no-tests=error`. Run with
