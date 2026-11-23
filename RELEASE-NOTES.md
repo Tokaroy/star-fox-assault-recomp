@@ -1,10 +1,32 @@
-# Unreleased — 2026-11-12 after rc.6
+# 0.2.0-rc.7 — Windows x64 source-build release candidate
 
-- Checked: the frame-rate dips at the start of a session and on loading/briefing screens are
-  scenes the game itself runs at 30 fps; a warm shader cache does not change them.
-- `GCN_FST_ALIAS` diagnostic for loading one disc file in place of another. Swapping another
-  mission's code module into mission 1's slot is not a valid test of later missions (their
-  stage data is chosen elsewhere); later missions remain unverified. See `docs/VALIDATION.md`.
+Experimental source package for testing; not a stable full-game release. Users provide their
+own USA GF7E01 ISO/CISO and build locally. Extract into a new writable folder, then copy the
+old `user-data` folder if preserving local settings, builds and saves. The package contains no
+game image, extracted game code or native game executable.
+
+What changed since rc.6:
+
+- Portable-folder relocation: if the selected image is inside the project folder, moving the
+  folder no longer requires rebuilding after its image hash is verified.
+- Memory-card writes now persist only the changed 128-byte page or 8 KiB sector instead of
+  rewriting the entire 512 KiB card for every operation. Full atomic writes remain for chip
+  erase and repair. Failed writes stay dirty for retry; truncated card files are repaired.
+- Added memory-card coverage for card formatting, page wrapping, erase boundaries, chip erase,
+  persistence on reopen and truncated-card repair.
+- Added `GCN_FST_ALIAS` diagnostics for loading one disc file in place of another. Swapping a
+  mission module alone is not a valid later-mission test because stage data is selected
+  separately; later missions remain unverified.
+- Confirmed that some frame-rate dips at session startup and on briefing screens are scenes the
+  game itself runs at 30 fps; a warm shader cache does not change them.
+
+Checks: Windows runtime CTest 16/16, launcher core 257/257, path audit 130/130, bootstrap
+portability checks, offline release-host build, source-only package hash/content checks and
+update rollback tests passed. The source package has 290 files. A fresh local native build
+from a read-only USA GF7E01 image succeeded. A final bounded run stayed near 60 FPS after
+startup and reached controller setup, but scripted input did not enter a mission or prove a
+completed save profile. The first-boss visibility report, current-thread-pointer crash, mission
+completion, later missions, audio by ear and physical-controller support remain unverified.
 
 # 0.2.0-rc.6 - Windows x64 source-build release candidate
 

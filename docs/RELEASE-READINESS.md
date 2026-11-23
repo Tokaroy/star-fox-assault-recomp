@@ -1,20 +1,18 @@
-# Release decision: experimental, published as Latest
+# Release decision: experimental source candidate
 
-**2026-11-12: 0.2.0-rc.6 is published, and since 2026-11-12 marked as the repository's Latest
-release at the owner's request; it is still experimental and a gameplay release stays
-blocked.** rc.6 adds one-press controller binding (not yet tried with a physical
-controller) to rc.5, which fixed the one gameplay crash that could be reproduced here: the
-native build crashed on a mission's third load (after retrying it twice). The fix was
-checked over five and then eight mission loads in scripted runs, the second from a fresh
-empty-cache build of the rc.5 package (see `VALIDATION.md`, "rc.5 package checks"; rc.6 was
-checked the same way, "rc.6 package checks").
+**v0.2.0-rc.7 is an experimental source-build candidate.** It is prepared as the next GitHub
+Latest release at the owner's request, but a stable gameplay release remains blocked. It
+includes portable-folder relocation and faster memory-card writes. The earlier rc.6 release
+added one-press controller binding (not yet tried with a physical controller) to rc.5, which
+fixed the one gameplay crash reproduced here: the native build crashed on a mission's third
+load (after retrying twice). That fix was checked over five and then eight mission loads in
+scripted runs, including an empty-cache build (see `VALIDATION.md`).
 
-The 2026-11-22 source branch adds portable-folder relocation support and reduces the time
-spent persisting memory-card writes. These changes are not included in the published rc.6
-archive. A fresh local build reaches controller setup after creating the first user save, but
-a seeded follow-up stopped capturing after the main menu. The first-boss report, mission
-completion and later-game status still block a gameplay release. See the dated evidence in
-`VALIDATION.md`.
+The 2026-11-22 candidate passed the offline host checks and source-package verification. A
+fresh native run reached controller setup after card writes, but the latest scripted session
+returned to name entry instead of entering a mission. The first-boss report, mission
+completion and later-game status still block a stable gameplay release. See the dated
+evidence in `VALIDATION.md`.
 
 Still open, and why each needs a person or hardware rather than more scripted runs:
 
@@ -27,13 +25,13 @@ Still open, and why each needs a person or hardware rather than more scripted ru
   display scaling, and the launcher window's own Import & Build on a second PC.**
 
 The 2026-11-04 notes below describe earlier candidates; their digests and smoke results do
-not certify rc.6.
+not certify rc.7.
 
 Assessed 2026-11-03 against source baseline
 `d46e231a2494d201923b08898f52cf9753abb030` plus the host CI changes accompanying
 this document. This is an experimental source-and-host-tools candidate, not a
-verified full-game release. No tag, store submission or release upload is authorized
-by this assessment.
+verified full-game release. This assessment supports only an explicitly experimental source
+candidate with unresolved issues and limits disclosed.
 
 ## Current verification
 
@@ -136,8 +134,8 @@ checklist; do not invent an approval or claim its dynamic form has been validate
   thread-pointer failures remain; full-game compatibility is unverified.
 - Pictures: `docs/images/launcher-home.png`, `launcher-settings.png`, `project-cover.png`.
   Label artwork as launcher concept artwork; it is not gameplay evidence.
-- Download: hold pending final candidate validation. Do not present rc.6 (or any
-  earlier candidate) as gameplay-validated.
+- Download: rc.7 is an experimental source package for testing. Do not present it as
+  gameplay-validated or as a stable full-game release.
 
 The project's release standard is stricter than the public site's short intake
 description. A store listing alone would not establish playability.

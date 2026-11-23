@@ -15,9 +15,9 @@ An experimental Windows x64 native recompilation project for the USA GameCube re
 
 *Custom project cover based on the launcher's hangar artwork. This is fan-project artwork, not the original retail box cover.*
 
-[Latest available download: experimental 0.2.0-rc.6](https://github.com/xSNAIRZx/star-fox-assault-recomp/releases/tag/v0.2.0-rc.6) · [Planned updates](ROADMAP.md) · [Validation and known issues](VALIDATION.md)
+[Latest available download: experimental 0.2.0-rc.7](https://github.com/xSNAIRZx/star-fox-assault-recomp/releases/tag/v0.2.0-rc.7) · [Planned updates](ROADMAP.md) · [Validation and known issues](docs/VALIDATION.md)
 
-The rc.6 download adds one-press controller binding and counts RecompLauncher sessions in play time, on top of rc.5's fix for a crash on a mission's third load. It is still an experimental candidate: see the status below.
+The rc.7 download adds portable-folder relocation and faster memory-card writes to rc.6. It remains experimental; see the status below.
 
 ## Launcher preview
 
@@ -36,15 +36,15 @@ The first build needs internet access, approximately 280 MB of portable build-to
 
 To move an already-built portable folder without rebuilding, keep your ISO/CISO inside that folder before selecting it in the launcher. The launcher remembers that relative location and verifies the image hash if the folder or drive changes. If the image is stored elsewhere, select it again after moving; an identical image can reuse the native build after its hash is checked.
 
-This relocation improvement is in the current source branch; it is not included in the older rc.6 download.
+The portable-folder relocation improvement is included in rc.7.
 
 The distribution contains source, original launcher artwork, licensed display and replacement fonts, and a standalone image inspector. It excludes game images, extracted game executables, generated game code, precompiled game binaries, personal settings and saves. Each recipient supplies their own supported image and builds locally.
 
 ## Experimental status
 
-The current source candidate is **0.2.0-rc.6**. Its package archive passed extraction, payload-hash, forbidden-content, asset-allowlist and PowerShell parser checks, and the update install and rollback tests. The empty-cache **Import & Build** and bounded startup evidence below is from rc.2; through the launcher window those checks were not repeated for rc.3 to rc.6, but the rc.5 and rc.6 packages were each built from a fresh extract with an empty build cache through its exe's `--prepare` mode, and that build ran eight mission loads in a scripted run. This evidence verifies setup and limited startup only, not full-game compatibility.
+The current source candidate is **0.2.0-rc.7**. The package is checked for extraction, file hashes, excluded content, and update rollback. The empty-cache **Import & Build** and bounded startup evidence below is from earlier candidates; the new source has a fresh native build and bounded save-setup runs, but the scripted route did not enter a mission. This verifies build setup and limited startup only, not full-game compatibility.
 
-First-mission flight, readable menus and saved-profile persistence have been tested. **A crash on a mission's third load (after retrying it twice) is fixed and was checked over five mission loads in a scripted run. The recorded first-boss disappearance is prevented by the arithmetic fix in a recorded replay; live confirmation through the boss fight is pending. The current-thread-pointer crash has not reproduced in any test run, before or after that fix; it may have shared the fixed cause, but that is not established.** Mission completion, later missions, complete audio fidelity and all physical controllers have not been verified. This release candidate is suitable for testing; it is not a stable full-game release.
+The game builds and reaches controller setup after memory-card writes; a final scripted session returned to name entry and did not establish a completed profile or reach a mission. **A crash on a mission's third load (after retrying it twice) is fixed and was checked over five mission loads in a scripted run. The recorded first-boss disappearance is prevented by the arithmetic fix in a recorded replay; live confirmation through the boss fight is pending. The current-thread-pointer crash has not reproduced in any test run, before or after that fix; it may have shared the fixed cause, but that is not established.** Mission completion, later missions, complete audio fidelity and all physical controllers have not been verified. This experimental release candidate is for testing, not a stable full-game release.
 
 The native runtime uses OpenGL. Graphics options include Match window or 1x–6x internal resolution, original 4:3, experimental 16:9, stretch, FXAA, Sharp/Smooth output filtering, fullscreen and VSync. Original 4:3 preserves the intended composition. Widescreen changes the 3D projection but still has game-specific culling limits. F8 switches Original/Wide during play; Alt+Enter toggles fullscreen. Higher resolution improves geometry edges without replacing original textures. Sharp with AA Off avoids FXAA softening.
 
