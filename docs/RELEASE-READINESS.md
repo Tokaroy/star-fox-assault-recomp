@@ -1,12 +1,12 @@
-# Release decision: experimental source candidate
+# Release decision: experimental candidate published as Latest
 
-**v0.2.0-rc.7 is an experimental source-build candidate.** It is prepared as the next GitHub
-Latest release at the owner's request, but a stable gameplay release remains blocked. It
-includes portable-folder relocation and faster memory-card writes. The earlier rc.6 release
-added one-press controller binding (not yet tried with a physical controller) to rc.5, which
-fixed the one gameplay crash reproduced here: the native build crashed on a mission's third
-load (after retrying twice). That fix was checked over five and then eight mission loads in
-scripted runs, including an empty-cache build (see `VALIDATION.md`).
+**v0.2.0-rc.7 was published on 2026-11-22 as the repository's Latest release at the owner's
+request. It remains an experimental source-build candidate; a stable gameplay release is
+blocked.** rc.7 includes portable-folder relocation and faster memory-card writes. The earlier
+rc.6 release added one-press controller binding (not yet tried with a physical controller) to
+rc.5, which fixed the one gameplay crash reproduced here: the native build crashed on a
+mission's third load (after retrying twice). That fix was checked over five and then eight
+mission loads in scripted runs, including an empty-cache build (see `VALIDATION.md`).
 
 The 2026-11-22 candidate passed the offline host checks and source-package verification. A
 fresh native run reached controller setup after card writes, but the latest scripted session
